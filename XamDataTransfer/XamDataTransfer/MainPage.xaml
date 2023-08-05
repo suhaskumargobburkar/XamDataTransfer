@@ -8,6 +8,7 @@
             <Label Text="Welcome to Xamarin.Forms!" HorizontalTextAlignment="Center" TextColor="White" FontSize="36"/>
         </Frame>
         <Button Text="Scan device" x:Name="btnScanDevice" Clicked="btnScanDevice_Clicked" Margin="20"/>
+        <Button Text="Search Connect" Clicked="SearchAndConnectButton_Clicked" Margin="20"/>
         <ListView x:Name="lstDevice" Margin="20">
             <ListView.ItemTemplate>
                 <DataTemplate>

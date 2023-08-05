@@ -14,21 +14,25 @@ namespace XamDataTransfer
 {
     public partial class MainPage : ContentPage
     {
-        IBluetoothLE ble = CrossBluetoothLE.Current;
-        IAdapter adapter = CrossBluetoothLE.Current.Adapter;
-        ObservableCollection<IDevice> deviceList = null;
-       MainViewModel viewModel= new MainViewModel();
+        //IBluetoothLE ble = CrossBluetoothLE.Current;
+        //IAdapter adapter = CrossBluetoothLE.Current.Adapter;
+        //ObservableCollection<IDevice> deviceList = null;
+        //MainViewModel viewModel= new MainViewModel();
+
+        string UIID = "831C16CC-34C2-11B2-A85C-FA7B604B699B";
         bool keepScanning;
+        private BluetoothService _bluetoothService;
         public MainPage()
         {
             InitializeComponent();
-            ble.StateChanged += (s, e) =>
-            {
-                DisplayAlert("Information", string.Format("Bluetooth Connection status changed to {0}", e.NewState), "OK");
-                Debug.WriteLine($"The bluetooth state changed to {e.NewState}");
-            };
+            _bluetoothService = new BluetoothService();
+            //ble.StateChanged += (s, e) =>
+            //{
+            //    DisplayAlert("Information", string.Format("Bluetooth Connection status changed to {0}", e.NewState), "OK");
+            //    Debug.WriteLine($"The bluetooth state changed to {e.NewState}");
+            //};
 
-            BindingContext = viewModel;
+            //BindingContext = viewModel;
         }
 
         async Task StartScanService()
@@ -36,8 +40,9 @@ namespace XamDataTransfer
             try
             {
                 var ListDevice = await DependencyService.Get<IBluetoothDeviceHelper>().DiscoverPairedDevicesAsync();
-                viewModel.BluetoothDeviceInfoList = new ObservableCollection<BluetoothDeviceInfo>(ListDevice);
-                lstDevice.ItemsSource= viewModel.BluetoothDeviceInfoList;
+                //var ListDevice = await DependencyService.Get<IBluetoothDeviceHelper>().DiscoverNonLEDevices();
+                lstDevice.ItemsSource = new ObservableCollection<BluetoothDeviceInfo>(ListDevice);
+                //lstDevice.ItemsSource= viewModel.BluetoothDeviceInfoList;
                 //if (keepScanning)
                 //    return;
 
@@ -83,18 +88,79 @@ namespace XamDataTransfer
             await StartScanService();
         }
 
-        private void TapGestureRecognizer_Tapped(object sender, EventArgs e)
+        private async void TapGestureRecognizer_Tapped(object sender, EventArgs e)
         {
             var device = (BluetoothDeviceInfo)lstDevice.SelectedItem;
             if (device != null)
             {
-                DisplayAlert("Alert", "Device Selected " + device.Name, "ok");
+                await DisplayAlert("Alert", "Device Selected " + device.Name, "ok");
+                await DependencyService.Get<IBluetoothDeviceHelper>().ConnectAndCommunicate(device.Id);
+                await DisplayAlert("Alert", "Device Selected " + device.Id, "ok");
             }
             else
             {
-                DisplayAlert("Alert", "No Device Selected", "ok");
+                await DisplayAlert("Alert", "No Device Selected", "ok");
             }
 
+        }
+
+        //async Task<bool> ConnectToDevice(BluetoothDeviceInfo device)
+        //{
+        //   // IDevice selectedDevice= new IDevice
+        //}
+
+        private async void SearchAndConnectButton_Clicked(object sender, EventArgs e)
+        {
+            var devices = await _bluetoothService.DiscoverDevicesAsync();
+            // Assuming you select the first device from the list; you can customize this as needed.
+            var selectedDevice = devices.FirstOrDefault();
+
+            if (selectedDevice != null)
+            {
+                var connected = await _bluetoothService.ConnectToDeviceAsync(selectedDevice);
+
+                if (connected)
+                {
+                    await DisplayAlert("Alert", "Device connected, you can now send and receive data", "OK");
+                }
+                else
+                {
+                    await DisplayAlert("Alert", "Failed to connect to the device", "OK");
+                }
+            }
+            else
+            {
+                await DisplayAlert("Alert", "No devices found or no paired devices","OK");
+            }
+        }
+
+        private async void SendButton_Clicked(object sender, EventArgs e)
+        {
+            var dataToSend = "Hello, Bluetooth!";
+            var dataSent = await _bluetoothService.SendDataAsync(dataToSend);
+
+            if (dataSent)
+            {
+                // Data sent successfully
+            }
+            else
+            {
+                // Failed to send data
+            }
+        }
+
+        private async void ReceiveButton_Clicked(object sender, EventArgs e)
+        {
+            var receivedData = await _bluetoothService.ReceiveDataAsync();
+
+            if (!string.IsNullOrEmpty(receivedData))
+            {
+                // Process received data
+            }
+            else
+            {
+                // Failed to receive data
+            }
         }
 
         protected override void OnDisappearing()
@@ -104,27 +170,27 @@ namespace XamDataTransfer
         }
     }
 
-    public class MainViewModel : INotifyPropertyChanged
-    {
-        private ObservableCollection<BluetoothDeviceInfo> bluetoothDeviceInfoList;
-        public ObservableCollection<BluetoothDeviceInfo> BluetoothDeviceInfoList
-        {
-            set
-            {
-                if (bluetoothDeviceInfoList != value)
-                {
-                    bluetoothDeviceInfoList = value;
-                    OnPropertyChanged("BluetoothDeviceInfoList");
-                }
-            }
-            get { return bluetoothDeviceInfoList; }
-        }
+    //public class MainViewModel : INotifyPropertyChanged
+    //{
+    //    private ObservableCollection<BluetoothDeviceInfo> bluetoothDeviceInfoList;
+    //    public ObservableCollection<BluetoothDeviceInfo> BluetoothDeviceInfoList
+    //    {
+    //        set
+    //        {
+    //            if (bluetoothDeviceInfoList != value)
+    //            {
+    //                bluetoothDeviceInfoList = value;
+    //                OnPropertyChanged("BluetoothDeviceInfoList");
+    //            }
+    //        }
+    //        get { return bluetoothDeviceInfoList; }
+    //    }
 
-        protected void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
+    //    protected void OnPropertyChanged(string propertyName)
+    //    {
+    //        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    //    }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-    }
+    //    public event PropertyChangedEventHandler PropertyChanged;
+    //}
 }
